@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Agrícola Completo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2E7D32; --secondary-color: #4CAF50;
+            --light-green-color: #66BB6A; --background-color: #F1F8E9;
+            --card-background: #FFFFFF; --text-color: #333;
+            --header-color: #FFFFFF; --shadow-color: rgba(0,0,0,0.1);
+            --success-color: #66BB6A; --danger-color: #ef5350;
+            --font-family: 'Arial', sans-serif;
+        }
+
+        html, body { overflow-x: hidden; }
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family); 
+            background-image: url('https://i.postimg.cc/Pq2B2sL7/AGRO.webp');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-color); 
+            margin: 0; 
+            line-height: 1.6; 
+            font-size: 16px;
+            display: flex;
+            flex-direction: column; 
+            min-height: 100vh;
+        }
+        
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+
+        #login-card {
+            background: var(--card-background); padding: 2rem; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center;
+            width: 90%; max-width: 400px;
+        }
+        
+        .hidden { display: none !important; }
+        #app-container { visibility: hidden; display: flex; flex-direction: column; flex-grow: 1; }
+        
+        header {
+            background-image: url('https://i.postimg.cc/jSkJZJdr/SOMA1.png'), linear-gradient(to top, var(--primary-color), var(--light-green-color));
+            background-repeat: no-repeat, no-repeat;
+            background-position: center;
+            background-size: contain;
+            color: var(--header-color); 
+            padding: 1rem 1.5rem; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start;
+            position: relative;
+        }
+
+        .header-logo { height: 150px; width: auto; margin-right: 20px; }
+        h1 { 
+            margin: 0; 
+            font-size: 3.5rem; 
+            font-weight: bold; 
+            flex-grow: 1;
+            text-align: center;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+        
+        nav {
+            background-color: #276a2a; padding: 0 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-tabs {
+            display: flex; list-style-type: none; margin: 0; padding: 0;
+            justify-content: center; flex-wrap: wrap;
+        }
+        
+        /* NOVO: Divisão entre as abas */
+        .nav-tabs li {
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-tabs li:last-child {
+            border-right: none;
+        }
+
+        .nav-tabs li a {
+            display: block; padding: 0.5rem 1rem; text-decoration: none;
+            color: var(--header-color); font-weight: bold; transition: background-color 0.3s ease;
+            font-size: 1.1rem;
+        }
+
+        .nav-tabs li a:hover { background-color: var(--secondary-color); }
+        .nav-tabs li a.active {
+            background-color: var(--background-color); color: var(--primary-color);
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
+        }
+
+        main { padding: 2rem 1rem; flex-grow: 1; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .card {
+            background: var(--card-background); border-radius: 8px;
+            padding: 1.5rem; box-shadow: 0 4px 8px var(--shadow-color); display: none;
+        }
+        
+        .card.active { display: block; }
+        h2 {
+            color: var(--primary-color); border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 0.5rem; margin-top: 0;
+        }
+        
+        #glossario h3 {
+            color: var(--secondary-color);
+            margin-top: 2rem;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
+        }
+        #glossario p {
+            margin-bottom: 1rem;
+        }
+        #glossario .formula {
+            background-color: #daffab;
+            padding: 1rem;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .input-group { margin-bottom: 1.5rem; text-align: left; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+
+        input[type="number"], input[type="text"], select {
+            width: 100%; padding: 0.8rem; border: 1px solid #ccc;
+            border-radius: 4px; font-size: 1rem;
+        }
+
+        button {
+            background-color: var(--secondary-color); color: white;
+            padding: 0.8rem 1.5rem; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 1rem; transition: background-color 0.3s ease;
+            width: 100%; margin-top: 1rem;
+        }
+
+        button:hover { background-color: var(--primary-color); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .resultado {
+            margin-top: 1.5rem; background-color: #f8f9fa; padding: 1rem;
+            border-left: 5px solid var(--success-color); font-weight: bold;
+            font-size: 1.1rem; word-wrap: break-word;
+        }
+        
+        #report-actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        #report-actions button { width: auto; flex-grow: 1; }
+        #pdf-export-btn { background-color: var(--primary-color); }
+        #relatorio-consolidado { border: 1px solid #ddd; padding: 1.5rem; margin-top: 1rem; }
+        #relatorio-consolidado h3 { color: var(--primary-color); }
+        #relatorio-consolidado img { max-width: 100%; height: auto; margin-top: 1rem; border: 1px solid #eee; }
+        
+        .activity-log-container { margin-top: 2rem; }
+        .activity-log-actions { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+        .activity-log-actions button { width: auto; flex-grow: 1; }
+        .delete-btn { background-color: var(--danger-color); }
+
+
+        #relatorio-log-list { list-style-type: none; padding-left: 0; }
+        #relatorio-log-list li { background-color: #fafafa; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; display: flex; align-items: center; gap: 15px; }
+        #relatorio-log-list li.selected { background-color: var(--background-color); }
+        
+        #fieldCanvas { background-color: #8B4513; cursor: crosshair; border: 2px solid #654321; }
+        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: #fefefe; padding: 2rem; border: 1px solid #888; width: 90%; max-width: 600px; border-radius: 10px; text-align: center; }
+        .grid-container { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 768px) { .grid-container { grid-template-columns: 1fr 1fr; } }
+        .grid-col-span-2 { grid-column: span 1 / span 1; }
+        @media (min-width: 768px) { .grid-col-span-2 { grid-column: span 2 / span 2; } }
+
+        footer { background-color: var(--primary-color); color: var(--header-color); text-align: center; padding: 1.5rem 1rem; margin-top: auto; }
+        .footer-logo {
+            max-width: 35%;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+        footer p {
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+            line-height: 1.2;
+            margin: 0.2rem 0;
+        }
+        .access-info { background-color: rgba(0,0,0,0.2); padding: 0.5rem; margin: 1.5rem auto 0 auto; border-radius: 5px; max-width: 90%; font-size: 0.9rem; }
+        
+        @media (max-width: 768px) {
+            header { flex-direction: column; justify-content: center; text-align: center; padding: 1rem; }
+            .header-logo { height: 100px; margin-right: 0; margin-bottom: 15px; }
+            h1 { font-size: 1.6rem; line-height: 1.2; }
+            nav { padding: 0; }
+            .nav-tabs { flex-direction: column; align-items: stretch; }
+            .nav-tabs li a { width: 100%; text-align: center; border-radius: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 1rem; }
+            .nav-tabs li:last-child a { border-bottom: none; }
+            .nav-tabs li a.active { border-top-left-radius: 0; border-top-right-radius: 0; }
+            .nav-tabs li, .nav-tabs li:last-child { border-right: none; } /* Remove borda vertical no mobile */
+            footer p { font-size: 0.8rem; }
+            #pulverizacao-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div id="login-card">
+            <h2>Acesso ao Simulador</h2> <p>Por favor, identifique-se para continuar.</p>
+            <div class="input-group"> <label for="nome-usuario">Usuário:</label> <input type="text" id="nome-usuario" class="saveable"> </div>
+            <div class="input-group"> <label for="nome-empresa">Empresa:</label> <input type="text" id="nome-empresa" class="saveable"> </div>
+            <button id="btn-acessar">Acessar Simulador</button>
+        </div>
+    </div>
+    
+    <div id="app-container">
+        <header>
+            <img src="https://i.postimg.cc/FKkmgWFj/LOGO-AGRO.png" alt="Logo da Empresa" class="header-logo">
+            <h1></h1>
+        </header>
+        <nav>
+            <ul class="nav-tabs">
+                <li><a href="#" class="tab-link active" data-target="maquinas">Máquinas</a></li>
+                <li><a href="#" class="tab-link" data-target="potencia">S.Potência</a></li>
+                <li><a href="#" class="tab-link" data-target="simulacao">S.Operação</a></li>
+                <li><a href="#" class="tab-link" data-target="otimizacao">Otimização</a></li>
+                <li><a href="#" class="tab-link" data-target="pulverizacao">Pulverização</a></li>
+                <li><a href="#" class="tab-link" data-target="penetrometro">Simulador de Solo</a></li>
+                <li><a href="#" class="tab-link" data-target="graficos">Gráficos</a></li>
+                <li><a href="#" class="tab-link" data-target="relatorio">Relatórios</a></li>
+                <li><a href="#" class="tab-link" data-target="glossario">Glossário & Fórmulas</a></li>
+            </ul>
+        </nav>
+        <main>
+            <div class="container">
+                <section id="maquinas" class="card active">
+                     <h2>Seleção de Máquinas e Implementos</h2>
+                    <div class="grid-container">
+                        <div class="input-group"> <label for="machine-select">Escolha uma Máquina:</label> <select id="machine-select" class="saveable"></select> </div>
+                        <div class="input-group"> <label for="implement-select">Escolha um Implemento:</label> <select id="implement-select" class="saveable"></select> </div>
+                    </div>
+                    <div id="manual-machine-inputs" class="hidden">
+                        <h3>Inserir Nova Máquina Manualmente</h3>
+                        <div class="input-group"> <label for="manual-nome">Nome:</label> <input type="text" id="manual-nome" class="saveable"> </div>
+                        <div class="input-group"> <label for="manual-potencia">Potência (cv):</label> <input type="number" id="manual-potencia" class="saveable"> </div>
+                        <div class="input-group"> <label for="manual-torque">Torque (N.m):</label> <input type="number" id="manual-torque" class="saveable"> </div>
+                    </div>
+                    <button id="btn-confirmar-maquina">Confirmar Seleção</button> <p id="resultado-maquina" class="resultado hidden"></p>
+                </section>
+                    <section id="potencia" class="card">
+                        <h2>Cálculo de Torque do Motor</h2>
+                        <div class="input-group">
+                            <label for="potencia">Potência (cv):</label>
+                            <input type="number" id="potencia" class="saveable">
+                        </div>
+                        <div class="input-group">
+                            <label for="rotacao">Rotação (rpm):</label>
+                            <input type="number" id="rotacao" class="saveable">
+                        </div>
+                        <button onclick="calcularTorque()">Calcular Torque</button>
+                        <p id="resultadoPotencia" class="resultado"></p>
+                    </section>
+
+                <section id="simulacao" class="card">
+                    <h2>Simulação da Máquina em Operação</h2>
+                    <div class="input-group">
+                        <label for="climate-select">Condições Climáticas:</label>
+                        <select id="climate-select" class="saveable"></select>
+                    </div>
+                    <div class="input-group"> <label for="resistenciaSolo">Resistência do Solo (Base em N):</label> <input type="number" id="resistenciaSolo" class="saveable">   <small style="display:block; margin-top:5px; color:#555; font-size:0.9rem;">
+                    Digite um valor de resistência aproximado do solo:  
+                    <br>• Arenoso: 5.000 – 10.000 N  
+                    <br>• Argiloso: 10.000 – 20.000 N  
+                    <br>• Compactado: 20.000 – 30.000 N  
+                    <br>• Muito compacto/seco: acima de 30.000 N  
+                  </small> </div>
+                    <div class="input-group"> <label for="velocidade">Velocidade (km/h):</label> <input type="number" id="velocidade" class="saveable"> </div>
+                    <div class="input-group"> <label for="distancia">Distância (km):</label> <input type="number" id="distancia" class="saveable"> </div>
+                    <button onclick="simularOperacao()">Simular Operação</button> 
+                    <p id="resultadoForcaTotal" class="resultado"></p>
+                    <p id="resultadoTempo" class="resultado"></p> 
+                    <p id="resultadoTrabalho" class="resultado"></p> 
+                    <p id="resultadoEnergia" class="resultado"></p>
+                </section>
+                
+                <section id="otimizacao" class="card">
+                    <h2>Aplicação de IA para Otimização</h2>
+                    <div class="input-group"> <label for="tipoSolo">Tipo de Solo:</label> <select id="tipoSolo" class="saveable"> <option value="1">Arenoso</option> <option value="1.5">Argiloso</option> <option value="2">Compactado</option> </select> </div>
+                    <div class="input-group"> <label for="inclinacao">Inclinação do Terreno (%):</label> <input type="number" id="inclinacao" class="saveable"> </div>
+                    <button onclick="otimizarOperacao()">Otimizar</button> <p id="resultadoOtimizacao" class="resultado"></p>
+                </section>
+                
+                <section id="pulverizacao" class="card">
+                    <div id="spray-app">
+                        <div id="setupScreenSpray" class="spray-screen active">
+                             <h2 style="color: var(--primary-color);">Simulador de Pulverização</h2>
+                             <div class="grid-container" style="margin-top: 2rem;">
+                                 <div class="input-group"> <label for="barWidth">Largura da Barra (m)</label> <input type="number" id="barWidth" value="24" class="saveable"> </div>
+                                 <div class="input-group"> <label for="speedSpray">Velocidade (km/h)</label> <input type="number" id="speedSpray" value="15" class="saveable"> </div>
+                                 <div class="input-group"> <label for="rate">Taxa de Aplicação (L/ha)</label> <input type="number" id="rate" value="100" class="saveable"> </div>
+                                 <div class="input-group"> <label for="price">Preço do Insumo (R$/L)</label> <input type="number" id="price" value="5.50" step="0.01" class="saveable"> </div>
+                                 <div class="input-group grid-col-span-2"> <label for="areaSize">Tamanho da Área (ha)</label> <input type="number" id="areaSize" value="10" class="saveable"> </div>
+                             </div>
+                             <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                                <button id="startManualBtn">Iniciar Simulação Manual</button>
+                                <button id="startPlmBtn" style="background-color: var(--primary-color);">Iniciar com Piloto Automático</button>
+                             </div>
+                        </div>
+                        <div id="simulationScreenSpray" class="spray-screen" style="display: none;">
+                            <div id="pulverizacao-container" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                <div style="flex: 3; display: flex; justify-content: center; align-items: center;">
+                                    <div>
+                                        <h3 id="simulationTitle" style="text-align: center; color: var(--primary-color);"></h3>
+                                        <canvas id="fieldCanvas"></canvas>
+                                    </div>
+                                </div>
+                                <div style="flex: 1; min-width: 280px;">
+                                    <h4>Controles e Dados</h4>
+                                    <div class="resultado"> <p><strong>Cobertura:</strong> <span id="coverageStat">0.00%</span></p> <p><strong>Sobreposição:</strong> <span id="overlapStat">0.00%</span></p> <p><strong>Falhas:</strong> <span id="failureStat">100.00%</span></p> <p><strong>Insumo Usado:</strong> <span id="usageStat">0.00 L</span></p> <p><strong>Custo:</strong> <span id="costStat">R$ 0.00</span></p> </div>
+                                    <button id="finishBtn" class="delete-btn" style="margin-top: 1.5rem;">Finalizar e Ver Resultados</button>
+                                    <button id="backToMenuBtn" style="background-color: #6c757d; margin-top: 0.5rem;">Voltar ao Menu</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="resultsScreenSpray" class="spray-screen" style="display: none;">
+                             <h2 style="color: var(--primary-color);">Resultados da Pulverização</h2>
+                             <div class="grid-container" style="margin-top: 2rem;">
+                                 <div id="manualResults" class="resultado"> <h3 style="color: var(--secondary-color);">Operação Manual</h3> <p><strong>Cobertura:</strong> <span id="manualCoverage"></span>%</p> <p><strong>Sobreposição:</strong> <span id="manualOverlap"></span>%</p> <p><strong>Falhas:</strong> <span id="manualFailure"></span>%</p> <p><strong>Consumo:</strong> <span id="manualUsage"></span> L</p> <p><strong>Custo:</strong> R$ <span id="manualCost"></span></p> </div>
+                                 <div id="plmResults" class="resultado"> <h3 style="color: var(--primary-color);">Operação com Piloto</h3> <p><strong>Cobertura:</strong> <span id="plmCoverage"></span>%</p> <p><strong>Sobreposição:</strong> <span id="plmOverlap"></span>%</p> <p><strong>Falhas:</strong> <span id="plmFailure"></span>%</p> <p><strong>Consumo:</strong> <span id="plmUsage"></span> L</p> <p><strong>Custo:</strong> R$ <span id="plmCost"></span></p> </div>
+                             </div>
+                             <div id="summary" class="resultado" style="margin-top: 2rem; border-left-color: var(--primary-color);"> <h3 style="color: var(--primary-color);">Economia com Piloto Automático</h3> <p><strong>Economia de Insumo:</strong> <span id="savedUsage"></span> L</p> <p><strong>Economia Financeira:</strong> R$ <span id="savedCost"></span></p> </div>
+                             <div style="margin-top: 2rem; text-align: center;"> <button id="restartBtn">Simular Novamente</button> </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="penetrometro" class="card">
+                    <h2>Simulador de Penetrômetro</h2>
+                    <p>Simule a medição da compactação do solo. Selecione um cenário ou insira a força manualmente para calcular a resistência.</p>
+                    <div class="input-group"> <label for="cenario-penetrometro">Cenário de Exemplo (Opcional):</label> <select id="cenario-penetrometro" class="saveable"> <option value="">Digitar Manualmente</option> <option value="10">1. Solo Ideal (aprox. 10 kgf)</option> <option value="25">2. Solo Moderado (aprox. 25 kgf)</option> <option value="26">3. Ponto Crítico (aprox. 26 kgf)</option> <option value="40">4. Solo Severo (aprox. 40 kgf)</option> </select> </div>
+                    <div class="input-group"> <label for="forca-aplicada">Força Aplicada no Medidor (kgf):</label> <input type="number" id="forca-aplicada" placeholder="Insira a força ou selecione um cenário" class="saveable"> </div>
+                    <div class="input-group"> <label for="tipo-cone">Tipo de Cone:</label> <select id="tipo-cone" class="saveable"> <option value="1.29">Cone Padrão (Área de 1.29 cm²)</option> <option value="0.645">Cone Pequeno (Área de 0.645 cm²)</option> </select> </div>
+                    <button onclick="calcularPenetrometro()">Calcular Compactação</button> <p id="resultadoPenetrometro" class="resultado"></p> <p id="interpretacaoPenetrometro" class="resultado"></p>
+                </section>
+
+                <section id="graficos" class="card">
+                    <h2>Análise Gráfica Consolidada</h2>
+                    <p>Gere um gráfico de barras com os principais resultados de todas as etapas da simulação.</p>
+                    <button onclick="gerarGraficoConsolidado()">Gerar Gráfico Consolidado</button> <div class="chart-container" style="position: relative; height:40vh; width:80vw; max-width: 800px; margin: auto;"> <canvas id="consolidatedChart"></canvas> </div>
+                </section>
+                
+                <section id="relatorio" class="card">
+                    <h2>Relatório de Atividades</h2>
+                    <div id="report-actions"> 
+                        <button id="pdf-export-btn">Salvar Relatório em PDF</button> 
+                        <button id="clear-data-btn" class="delete-btn">Limpar Dados Salvos</button>
+                    </div>
+                    <div id="relatorio-consolidado"></div>
+                    <div class="activity-log-container">
+                        <hr style="margin: 2rem 0;">
+                        <h3>Log Detalhado de Atividades (Apenas na tela)</h3>
+                        <div class="activity-log-actions">
+                            <button id="delete-log-selected" class="delete-btn" disabled>Excluir Selecionados</button>
+                            <button id="share-log-selected" disabled>Compartilhar Selecionados</button>
+                        </div>
+                        <ul id="relatorio-log-list"></ul>
+                    </div>
+                </section>
+                
+                <section id="glossario" class="card">
+                     <h2>Glossário de Parâmetros e Fórmulas</h2>
+                    <p>Esta seção descreve os principais termos, parâmetros e as fórmulas utilizadas nas simulações desta aplicação.</p>
+
+                    <h3>Termos e Símbolos Gerais</h3>
+                    <p><strong>Força de Tração (N):</strong> É a força que a máquina precisa exercer para superar a resistência total (solo + implemento) e se mover. <br><strong>Unidades:</strong> Newton (N).</p>
+                    <p><strong>Potência (P):</strong> É a taxa na qual o trabalho é realizado. <br><strong>Unidades:</strong> Cavalo-vapor (CV), quilowatt (kW).</p>
+                    
+                    <h3>Aba: Simulação</h3>
+                    <p>Calcula a força total necessária, o tempo, o trabalho e o consumo de combustível.</p>
+                    <div class="formula">
+                        <p><strong>Fórmula:</strong> Força Total de Tração</p>
+                        $$ F_{total} = (F_{solo} + F_{implemento}) \times M_{clima} $$
+                        <p>Onde: <br>
+                        $ F_{solo} $ = Resistência base do solo (N). <br>
+                        $ F_{implemento} $ = Resistência adicional do implemento (N). <br>
+                        $ M_{clima} $ = Fator multiplicador da condição climática.</p>
+                        O valor <strong>7122</strong> é uma constante de conversão para obter o resultado diretamente em CV a partir das unidades N.m e rpm.</p>
+                    </div>
+
+                    <h3>Aba: Simulação da Máquina</h3>
+                     <p>Calcula o tempo, o trabalho e o consumo de combustível para uma operação, com base na resistência do solo e na velocidade.</p>
+                    <div class="formula">
+                        <p><strong>Fórmula:</strong> Tempo de Operação</p>
+                        $$ T_{horas} = \frac{D_{km}}{V_{km/h}} $$
+                    </div>
+                    <div class="formula">
+                        <p><strong>Fórmula:</strong> Trabalho Realizado</p>
+                        $$ W_{kWh} = \frac{F_N \times (D_{km} \times 1000)}{3,600,000} $$
+                         <p>Onde: <br>
+                        $ W_{kWh} $ = Trabalho em quilowatt-hora. <br>
+                        $ F_N $ = Resistência do solo em Newtons. <br>
+                        $ D_{km} $ = Distância em quilômetros. <br>
+                        O fator <strong>1000</strong> converte km para metros e <strong>3.600.000</strong> converte Joules para kWh.</p>
+                    </div>
+                     <div class="formula">
+                        <p><strong>Fórmula:</strong> Consumo de Combustível (Energia)</p>
+                        $$ C_L = \frac{W_{kWh} \times C_{esp}}{1000 \times \rho_{diesel}} $$
+                         <p>Onde: <br>
+                        $ C_L $ = Consumo em Litros. <br>
+                        $ C_{esp} $ = Consumo específico (usado no cálculo: ~230 g/kWh). <br>
+                        $ \rho_{diesel} $ = Densidade do diesel (usado no cálculo: ~0.85 kg/L). <br>
+                        O fator <strong>1000</strong> converte gramas para quilogramas.</p>
+                    </div>
+                    
+                    <h3>Aba: Otimização</h3>
+                    <p>Utiliza um modelo preditivo simplificado para sugerir uma rotação ideal do motor com base nas condições do terreno.</p>
+                    <div class="formula">
+                        <p><strong>Fórmula:</strong> Torque Previsto (Modelo)</p>
+                        $$ T_{previsto} = 500 + (250 \times F_{solo}) + (50 \times I_{\%}) $$
+                        <p>Onde $ F_{solo} $ é um fator para o tipo de solo (Arenoso=1, Argiloso=1.5, Compactado=2) e $ I_{\%} $ é a inclinação do terreno.</p>
+                    </div>
+
+                    <h3>Aba: Penetrômetro</h3>
+                    <p>Calcula a resistência do solo à penetração, uma medida direta da compactação.</p>
+                    <div class="formula">
+                        <p><strong>Fórmula:</strong> Resistência à Penetração (Pressão)</p>
+                        $$ P_{Pa} = \frac{F_N}{A_{m^2}} = \frac{F_{kgf} \times 9.80665}{A_{cm^2} / 10000} $$
+                         <p>Onde: <br>
+                        $ P_{Pa} $ = Pressão em Pascal. <br>
+                        $ F_{kgf} $ = Força aplicada em quilograma-força. <br>
+                        $ A_{cm^2} $ = Área da base do cone em centímetros quadrados.</p>
+                    </div>
+
+                    <h3>Aba: Pulverização</h3>
+                    <p>Calcula o consumo de insumos e o custo com base nos parâmetros da operação e na área efetivamente aplicada (incluindo sobreposições).</p>
+                    <div class="formula">
+                         <p><strong>Fórmula:</strong> Consumo e Custo</p>
+                         $$ C_{total} = (\text{Área Aplicada}_{ha}) \times (\text{Taxa de Aplicação}_{L/ha}) $$
+                         $$ \text{Custo}_{total} = C_{total} \times (\text{Preço do Insumo}_{R\$/L}) $$
+                         <p>A <strong>Área Aplicada</strong> é calculada dinamicamente na simulação, somando todas as áreas que recebem aplicação, mesmo que repetidamente (sobreposição).</p> 
+                    </div>
+                </section>
+            </div>
+        </main>
+        <footer>
+            <img src="https://i.postimg.cc/bwWfJx0d/LOGO_FATEC__imagem.png" alt="Logo SENAI" class="footer-logo">
+            <p>Desenvolvido para a Unidade Curricular de Mecanização Agrícola - DOCENTE: Natacha Brun</p>
+            <p>DISCENTE: Decleones Andrade, Isabele Lima, Pietra Macagnam, Sarah Gárcia, Ítalo Yuri</p>
+            <div class="access-info"> <span id="data-acesso"></span><br> <span id="duracao-acesso"></span> </div>
+        </footer>
+    </div>
+    
+    <div id="instructionsModal" class="modal">
+        <div class="modal-content"> <h2 id="modalTitle" style="color: var(--primary-color);"></h2> <p id="modalText"></p> <button id="startSimulationBtn" style="margin-top: 1rem;">Começar</button> </div>
+    </div>
+
+    <script>
+        // --- SETUP INICIAL ---
+        function loadMathJax() {
+            var script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+            script.async = true;
+            document.head.appendChild(script);
+        }
+        window.jsPDF = window.jspdf.jsPDF;
+
+        // --- VARIÁVEIS GLOBAIS E BANCOS DE DADOS ---
+        let logDeAtividades = [], dataInicioAcesso, nomeUsuario = '', nomeEmpresa = '', ultimoGraficoURI = null;
+        let allResultsPulverizacao = { manual: null, plm: null };
+        const machineDatabase = [ { nome: "John Deere 3036EN", potencia: 36, rotacao: 2800 }, { nome: "John Deere 5060E", potencia: 60, rotacao: 2400 }, { nome: "John Deere 7200J", potencia: 200, rotacao: 2200 }, { nome: "John Deere 7215J", potencia: 215, rotacao: 2200 }, { nome: "John Deere 7230J", potencia: 230, rotacao: 2200 }, { nome: "John Deere 624 P Sugarcane", potencia: 189, rotacao: 2200 }, { nome: "New Holland TT.55", potencia: 55, rotacao: 2400 }, { nome: "New Holland TT.65", potencia: 66, rotacao: 2400 }, { nome: "New Holland TT.75", potencia: 75, rotacao: 2400 }, { nome: "New Holland 7630", potencia: 110, rotacao: 2200 }, { nome: "New Holland 8030", potencia: 122, rotacao: 2200 }, { nome: "Kuhn Accura 8.0 HD", potencia: 280, rotacao: 2100 }, { nome: "Case IH Steiger 580", potencia: 629, rotacao: 2100 }, { nome: "Valtra A850R", potencia: 89, rotacao: 2300 },
+            { nome: "Valtra A990R", potencia: 105, rotacao: 2300 },
+            { nome: "Valtra BM135", potencia: 135, rotacao: 2300 },
+            { nome: "Massey Ferguson MF 4707", potencia: 79, rotacao: 2200 },
+            { nome: "Massey Ferguson MF 6713", potencia: 135, rotacao: 2200 },
+            { nome: "Massey Ferguson MF 7318", potencia: 180, rotacao: 2200 },
+            { nome: "Case IH Farmall 110M", potencia: 112, rotacao: 2300 },
+            { nome: "Case IH Puma 140", potencia: 144, rotacao: 2200 },
+            { nome: "Case IH Magnum 325", potencia: 325, rotacao: 2100 }];
+        const implementDatabase = [ { nome: "Nenhum", resistencia: 0 }, { nome: "Arado de Aiveca (3 sulcos)", resistencia: 15000 }, { nome: "Grade Niveladora (28 discos)", resistencia: 10000 }, { nome: "Subsolador (5 hastes)", resistencia: 25000 }, { nome: "Plantadeira (7 linhas)", resistencia: 18000 }, { nome: "Pulverizador de Arrasto", resistencia: 8000 }, { nome: "Escarificador (5 hastes)", resistencia: 22000 },
+            { nome: "Sulcador (3 linhas)", resistencia: 9000 },
+            { nome: "Roçadeira de Arrasto", resistencia: 5000 },
+            { nome: "Enxada Rotativa", resistencia: 12000 },
+            { nome: "Carreta Agrícola (carregada)", resistencia: 20000 },
+            { nome: "Distribuidor de Calcário", resistencia: 6000 }];
+        const climateConditions = [ { nome: "Condições Ideais", multiplicador: 1.0 }, { nome: "Solo Úmido (Pós-Chuva)", multiplicador: 0.8 }, { nome: "Solo Seco e Duro", multiplicador: 1.25 }, { nome: "Solo Muito Seco e Compactado", multiplicador: 1.5 } ];
+
+        // --- FUNÇÕES DE PERSISTÊNCIA DE DADOS (LOCALSTORAGE) ---
+        function saveData() { try { const dataToSave = {}; document.querySelectorAll('.saveable').forEach(el => { dataToSave[el.id] = el.value; }); localStorage.setItem('somaSimuladorData', JSON.stringify(dataToSave)); } catch (e) { console.error("Falha ao salvar dados:", e); } }
+        function loadData() { try { const savedData = JSON.parse(localStorage.getItem('somaSimuladorData')); if (savedData) { Object.keys(savedData).forEach(key => { const el = document.getElementById(key); if (el) { el.value = savedData[key]; } }); } } catch (e) { console.error("Falha ao carregar dados:", e); } }
+        function clearData() { if (confirm("Tem certeza que deseja apagar todos os dados salvos e reiniciar o simulador?")) { localStorage.removeItem('somaSimuladorData'); location.reload(); } }
+        
+        // --- FUNÇÕES PRINCIPAIS E DE LOG ---
+        function adicionarLog(titulo, detalhes) { logDeAtividades.push({ id: Date.now(), timestamp: new Date().toLocaleTimeString('pt-BR'), titulo, detalhes }); }
+        function gerarRelatorioNaTela() { const containerRelatorio = document.getElementById('relatorio-consolidado'); const resPotencia = document.getElementById('resultadoPotencia').textContent; const resForca = document.getElementById('resultadoForcaTotal').textContent; const resTempo = document.getElementById('resultadoTempo').textContent; const resEnergia = document.getElementById('resultadoEnergia').textContent; const resOtimizacao = document.getElementById('resultadoOtimizacao').innerHTML; const resPenetrometro = document.getElementById('resultadoPenetrometro').innerHTML; let pulverizacaoHTML = '<h4>Resultados da Pulverização</h4>'; if (allResultsPulverizacao.manual && allResultsPulverizacao.plm) { pulverizacaoHTML += `<p><strong>Economia com Piloto: R$ ${(allResultsPulverizacao.manual.cost - allResultsPulverizacao.plm.cost).toFixed(2)}</strong></p>`; } else { pulverizacaoHTML += '<p>Nenhuma simulação de pulverização foi completada.</p>'; } let conteudoHTML = `<div id="relatorio-para-pdf"><h3>Relatório de Simulação - ${nomeUsuario} (${nomeEmpresa})</h3><p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p><hr><h4>Resultados da Operação</h4><p><strong>Potência Calculada:</strong> ${resPotencia || 'N/A'}</p><p><strong>Força de Tração Total:</strong> ${resForca || 'N/A'}</p><p><strong>Tempo Estimado:</strong> ${resTempo || 'N/A'}</p><p><strong>Consumo de Combustível:</strong> ${resEnergia || 'N/A'}</p><p><strong>Otimização de RPM:</strong> ${resOtimizacao.replace(/<br>/g, ', ') || 'N/A'}</p><p><strong>Compactação do Solo:</strong> ${resPenetrometro.replace(/<[^>]*>/g, " ") || 'N/A'}</p>${pulverizacaoHTML}<h4>Gráfico Consolidado</h4>${ultimoGraficoURI ? `<img src="${ultimoGraficoURI}" alt="Gráfico">` : '<p>Nenhum gráfico gerado.</p>'}</div>`; containerRelatorio.innerHTML = conteudoHTML; const logListEl = document.getElementById('relatorio-log-list'); logListEl.innerHTML = logDeAtividades.map(log => `<li data-log-id="${log.id}"><input type="checkbox" class="log-checkbox" value="${log.id}"><div><strong>[${log.timestamp}] ${log.titulo}:</strong> ${log.detalhes}</div></li>`).join('') || '<li>Nenhuma atividade registrada.</li>'; document.querySelectorAll('.log-checkbox').forEach(cb => cb.addEventListener('change', updateLogActions)); updateLogActions(); }
+        function updateLogActions() { const count = document.querySelectorAll('.log-checkbox:checked').length; document.getElementById('delete-log-selected').disabled = count === 0; document.getElementById('share-log-selected').disabled = count === 0; }
+        function iniciarMonitoramento() { dataInicioAcesso = new Date(); const dataEl = document.getElementById('data-acesso'), duracaoEl = document.getElementById('duracao-acesso'); dataEl.textContent = `Acesso: ${dataInicioAcesso.toLocaleString('pt-BR')}`; setInterval(() => { const duracaoMs = new Date() - dataInicioAcesso; const s = Math.floor((duracaoMs/1000)%60).toString().padStart(2,'0'), m = Math.floor((duracaoMs/60000)%60).toString().padStart(2,'0'), h = Math.floor(duracaoMs/3600000).toString().padStart(2,'0'); duracaoEl.textContent = `Duração: ${h}:${m}:${s}`; }, 1000); }
+        
+        // --- FUNÇÕES DE CÁLCULO DAS ABAS ---
+
+        function calcularTorque() {
+            const p = parseFloat(document.getElementById('potencia').value),
+                  r = parseFloat(document.getElementById('rotacao').value),
+                  el = document.getElementById('resultadoPotencia');
+            if (isNaN(p) || isNaN(r) || r <= 0) {
+                el.textContent = '';
+                return;
+            }
+            const t = (p * 7122) / r;
+            el.textContent = `Torque: ${t.toFixed(2)} N.m`;
+            adicionarLog('Torque', el.textContent);
+            }
+
+
+        function simularOperacao() { const resBase = parseFloat(document.getElementById('resistenciaSolo').value) || 0; const dist = parseFloat(document.getElementById('distancia').value); const vel = parseFloat(document.getElementById('velocidade').value); const implementoIdx = document.getElementById('implement-select').value; const resImplemento = implementDatabase[implementoIdx].resistencia; const climaIdx = document.getElementById('climate-select').value; const multiClima = climateConditions[climaIdx].multiplicador; const fTotalEl = document.getElementById('resultadoForcaTotal'), tEl = document.getElementById('resultadoTempo'), trEl = document.getElementById('resultadoTrabalho'), eEl = document.getElementById('resultadoEnergia'); if(isNaN(dist) || isNaN(vel) || vel <= 0){ fTotalEl.textContent=''; tEl.textContent=''; trEl.textContent=''; eEl.textContent=''; return; } const forcaTotal = (resBase + resImplemento) * multiClima; fTotalEl.textContent = `Força de Tração Total: ${forcaTotal.toFixed(2)} N`; const tempoDec = dist / vel; const h = Math.floor(tempoDec), m = Math.round((tempoDec - h) * 60); const tTxt = `Tempo: ${h}h ${m}min`; const trabKWh = (forcaTotal * (dist * 1000)) / 3600000; const consL = (trabKWh * 230) / 1000 / 0.85; const trTxt = `Trabalho: ${trabKWh.toFixed(2)} kWh`; const enTxt = `Energia: ${consL.toFixed(2)} L`; tEl.textContent = tTxt; trEl.textContent = trTxt; eEl.textContent = enTxt; adicionarLog('Simulação', `Força Total: ${forcaTotal.toFixed(2)}N, ${tTxt}, ${trTxt}, ${enTxt}`); }
+        function otimizarOperacao() { const soloEl=document.getElementById('tipoSolo'), tSolo=parseFloat(soloEl.value), incl=parseFloat(document.getElementById('inclinacao').value), resEl=document.getElementById('resultadoOtimizacao'); if(isNaN(tSolo)||isNaN(incl)){resEl.innerHTML='';return;} const torquePrevisto = 500 + (250 * tSolo) + (50 * incl); const baseRPM = 1600, fatorDeAjusteRPM = 0.25; let rotacaoIdeal = baseRPM + ((torquePrevisto - 500) * fatorDeAjusteRPM); rotacaoIdeal = Math.max(1400, rotacaoIdeal); const resHTML=`Torque Previsto: <strong>${torquePrevisto.toFixed(2)} N.m</strong><br>Rotação Recomendada: <strong>${Math.round(rotacaoIdeal)} rpm</strong>`; resEl.innerHTML = resHTML; adicionarLog('Otimização', resHTML.replace(/<br>/g,', ')); }
+
+
+          function calcularPenetrometro() {
+            const forcaKgf = parseFloat(document.getElementById('forca-aplicada').value),
+                  areaCm2 = parseFloat(document.getElementById('tipo-cone').value);
+
+            const resEl = document.getElementById('resultadoPenetrometro'),
+                  intEl = document.getElementById('interpretacaoPenetrometro');
+
+            if (isNaN(forcaKgf) || forcaKgf <= 0) {
+                resEl.textContent = '';
+                intEl.textContent = 'Por favor, insira um valor de força válido.';
+                return;
+            }
+
+            // Conversões
+            const forcaN = forcaKgf * 9.80665,
+                  areaM2 = areaCm2 / 10000;
+            const pressaoPa = forcaN / areaM2,
+                  pressaoKPa = pressaoPa / 1000,
+                  pressaoMPa = pressaoKPa / 1000;
+
+            // Resultado principal
+            const resultadoTexto = `Resistência à Penetração: 
+                <strong>${pressaoKPa.toFixed(2)} kPa</strong> 
+                (${pressaoMPa.toFixed(3)} MPa)`;
+            resEl.innerHTML = resultadoTexto;
+
+            // Interpretação + Recomendação prática
+            let nivel = "";
+            let recomendacao = "";
+
+            if (pressaoMPa < 1.5) {
+                nivel = "<strong>Nível de Compactação: Baixo.</strong>";
+                recomendacao = "Manter o manejo atual. Evite tráfego excessivo de máquinas, especialmente após chuvas.";
+            } else if (pressaoMPa <= 2.5) {
+                nivel = "<strong>Nível de Compactação: Moderado.</strong>";
+                recomendacao = "Considerar subsolagem localizada em pontos críticos e adotar controle de tráfego. Avaliar operações em condições de umidade ideal.";
+            } else {
+                nivel = "<strong>Nível de Compactação: Alto/Severo.</strong>";
+                recomendacao = "Necessária subsolagem ou escarificação em faixas. Adotar tráfego controlado e culturas de cobertura para recuperação do solo.";
+            }
+
+            // Exibir na tela
+            intEl.innerHTML = `
+                ${nivel}<br>
+                <em style="color:#2E7D32;">${recomendacao}</em>
+            `;
+
+            // Salvar no log (sem tags HTML)
+            adicionarLog(
+                'Simulação de Penetrômetro',
+                `${resultadoTexto.replace(/<[^>]*>/g, '')}, ${nivel.replace(/<[^>]*>/g, '')}, ${recomendacao}`
+            );
+        }
+
+
+
+
+        let consolidatedChart; function gerarGraficoConsolidado() { adicionarLog('Gráfico', 'Gráfico consolidado gerado.'); const chartCanvas = document.getElementById('consolidatedChart'); const parseValue = (element, pattern) => { const text = element ? element.innerHTML || element.textContent : ''; const match = text.match(pattern); return match ? parseFloat(match[1]) : 0; }; const labels = ['Potência (CV)', 'Trabalho (kWh)', 'Força Total (N)', 'Resistência (kPa)']; const data = [ parseValue(document.getElementById('resultadoPotencia'), /([\d\.]+)/), parseValue(document.getElementById('resultadoTrabalho'), /([\d\.]+)/), parseValue(document.getElementById('resultadoForcaTotal'), /([\d\.]+)/), parseValue(document.getElementById('resultadoPenetrometro'), /<strong>([\d\.]+) kPa<\/strong>/) ]; const colors = ['#2E7D32', '#4CAF50', '#81C784', '#FFA000']; if (consolidatedChart) { consolidatedChart.destroy(); } consolidatedChart = new Chart(chartCanvas.getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'Resultados Consolidados', data: data, backgroundColor: colors }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, animation: { onComplete: () => { ultimoGraficoURI = chartCanvas.toDataURL('image/png'); } }, scales: { y: { beginAtZero: true } } } }); }
+        
+        // --- LÓGICA DO SIMULADOR DE PULVERIZAÇÃO ---
+        const sprayScreens = { setup: document.getElementById('setupScreenSpray'), simulation: document.getElementById('simulationScreenSpray'), results: document.getElementById('resultsScreenSpray'), }, sprayInputs = { barWidth: document.getElementById('barWidth'), speed: document.getElementById('speedSpray'), rate: document.getElementById('rate'), price: document.getElementById('price'), areaSize: document.getElementById('areaSize'), }, sprayButtons = { startManual: document.getElementById('startManualBtn'), startPlm: document.getElementById('startPlmBtn'), finish: document.getElementById('finishBtn'), restart: document.getElementById('restartBtn'), backToMenu: document.getElementById('backToMenuBtn'), startSimulation: document.getElementById('startSimulationBtn'), }, sprayStats = { coverage: document.getElementById('coverageStat'), overlap: document.getElementById('overlapStat'), failure: document.getElementById('failureStat'), usage: document.getElementById('usageStat'), cost: document.getElementById('costStat'), }, sprayResults = { manual: {coverage:document.getElementById('manualCoverage'),overlap:document.getElementById('manualOverlap'),failure:document.getElementById('manualFailure'),usage:document.getElementById('manualUsage'),cost:document.getElementById('manualCost')}, plm: {coverage:document.getElementById('plmCoverage'),overlap:document.getElementById('plmOverlap'),failure:document.getElementById('plmFailure'),usage:document.getElementById('plmUsage'),cost:document.getElementById('plmCost')}, summary: {savedUsage:document.getElementById('savedUsage'),savedCost:document.getElementById('savedCost')} }, sprayModal = { element: document.getElementById('instructionsModal'), title: document.getElementById('modalTitle'), text: document.getElementById('modalText'), };
+        const simulationTitle = document.getElementById('simulationTitle'), canvas = document.getElementById('fieldCanvas'), ctx = canvas.getContext('2d');
+        const PIXELS_PER_METER = 4, FIELD_WIDTH_M = 100, FIELD_HEIGHT_M = 100;
+        canvas.width = FIELD_WIDTH_M * PIXELS_PER_METER; canvas.height = FIELD_HEIGHT_M * PIXELS_PER_METER;
+        let config = {}, simulationData = {}, currentMode = '', animationFrameId, fieldGrid, sprayer;
+        
+        function initializeSpraySimulation() { fieldGrid = Array(canvas.height).fill(0).map(()=>Array(canvas.width).fill(0)); const barWidthPixels = config.barWidth * PIXELS_PER_METER; sprayer={x:canvas.width/2,y:canvas.height-10,width:10*PIXELS_PER_METER,height:5*PIXELS_PER_METER,barWidth:barWidthPixels,speed:(config.speed*1000/3600)*PIXELS_PER_METER,dx:0,dy:0,path:[],pathIndex:0}; if(currentMode==='plm'){generatePlmPath();} resetSprayStats(); calculateSprayStats(); gameLoop(); }
+        function generatePlmPath() { sprayer.path = []; const barWidthM = config.barWidth; const numPasses = Math.ceil(FIELD_WIDTH_M / barWidthM); let x = (barWidthM / 2) * PIXELS_PER_METER; for (let i = 0; i < numPasses; i++) { sprayer.path.push({ x: x, y: 10 }); x += barWidthM * PIXELS_PER_METER; sprayer.path.push({ x: x, y: canvas.height - 10 }); } sprayer.x = (barWidthM / 2) * PIXELS_PER_METER; sprayer.y = canvas.height - 10; }
+        function updateSpray() { let isMoving = false; if (currentMode === 'manual') { if (sprayer.dx !== 0 || sprayer.dy !== 0) { sprayer.x += sprayer.dx; sprayer.y += sprayer.dy; isMoving = true; } } else if (currentMode === 'plm') { isMoving = followPlmPath(); } sprayer.x = Math.max(0, Math.min(canvas.width - sprayer.width, sprayer.x)); sprayer.y = Math.max(0, Math.min(canvas.height - sprayer.height, sprayer.y)); if (isMoving) { applySpray(); } calculateSprayStats(); }
+        function followPlmPath() { if (sprayer.pathIndex >= sprayer.path.length) return false; const target = sprayer.path[sprayer.pathIndex]; const dx = target.x - sprayer.x, dy = target.y - sprayer.y, dist = Math.sqrt(dx*dx + dy*dy); if (dist < sprayer.speed / 30) { sprayer.pathIndex++; } else { sprayer.x += (dx/dist)*(sprayer.speed/30); sprayer.y += (dy/dist)*(sprayer.speed/30); } return true; }
+        function applySpray() { const barStartX = sprayer.x + sprayer.width/2 - sprayer.barWidth/2, barY = Math.round(sprayer.y); for(let i=0; i<sprayer.barWidth; i++) { const px = Math.round(barStartX+i); if(px >= 0 && px < canvas.width && barY >= 0 && barY < canvas.height) { fieldGrid[barY][px]++; } } }
+        function drawSpray() { ctx.fillStyle = '#8B5A2B'; ctx.fillRect(0,0,canvas.width,canvas.height); for(let y=0; y<canvas.height; y++){ for(let x=0; x<canvas.width; x++){ if(fieldGrid[y][x]===1){ctx.fillStyle='rgba(76,175,80,0.6)'; ctx.fillRect(x,y,1,1);} else if(fieldGrid[y][x]>1){ctx.fillStyle='rgba(255,165,0,0.7)'; ctx.fillRect(x,y,1,1);} } } ctx.fillStyle='var(--primary-color)'; ctx.fillRect(sprayer.x,sprayer.y,sprayer.width,sprayer.height); }
+        function calculateSprayStats() { let sprayed=0, overlapped=0, applied=0, total=canvas.width*canvas.height; for(let r of fieldGrid){for(let p of r){if(p>0)sprayed++; if(p>1)overlapped++; applied+=p;}} const appliedHa = (applied/(PIXELS_PER_METER*PIXELS_PER_METER))/10000; const totalUsage = appliedHa * config.rate; const totalCost = totalUsage * config.price; simulationData={coverage:(sprayed/total)*100,overlap:(overlapped/total)*100,failure:100-((sprayed/total)*100),usage:totalUsage,cost:totalCost}; sprayStats.coverage.textContent=`${simulationData.coverage.toFixed(2)}%`; sprayStats.overlap.textContent=`${simulationData.overlap.toFixed(2)}%`; sprayStats.failure.textContent=`${simulationData.failure.toFixed(2)}%`; sprayStats.usage.textContent=`${simulationData.usage.toFixed(2)} L`; sprayStats.cost.textContent=`R$ ${simulationData.cost.toFixed(2)}`; }
+        function resetSprayStats() { simulationData={}; Object.values(sprayStats).forEach(el=>el.textContent='0.00'); sprayStats.failure.textContent = '100.00%'; }
+        function gameLoop() { updateSpray(); drawSpray(); animationFrameId = requestAnimationFrame(gameLoop); }
+        function switchSprayScreen(screenName) { Object.values(sprayScreens).forEach(s=>s.style.display='none'); sprayScreens[screenName].style.display='block'; }
+        function startSpraySimulation(mode) { currentMode = mode; config = { barWidth: parseFloat(sprayInputs.barWidth.value), speed: parseFloat(sprayInputs.speed.value), rate: parseFloat(sprayInputs.rate.value), price: parseFloat(sprayInputs.price.value), areaSize: parseFloat(sprayInputs.areaSize.value) }; if(Object.values(config).some(isNaN)) { alert("Preencha todos os campos."); return; } sprayModal.title.textContent = mode === 'manual' ? "Simulação Manual" : "Simulação com PLM"; sprayModal.text.textContent = mode === 'manual' ? "Use as setas do teclado para mover o pulverizador." : "O sistema guiará o pulverizador automaticamente."; sprayModal.element.classList.add('active'); }
+        
+        // --- EVENT LISTENERS E INICIALIZAÇÃO DA PÁGINA ---
+        document.addEventListener('DOMContentLoaded', function () {
+            loadMathJax();
+            const implementSelect = document.getElementById('implement-select'); implementDatabase.forEach((item, index) => { implementSelect.innerHTML += `<option value="${index}">${item.nome} (+${item.resistencia} N)</option>`; });
+            const climateSelect = document.getElementById('climate-select'); climateConditions.forEach((item, index) => { climateSelect.innerHTML += `<option value="${index}">${item.nome} (x${item.multiplicador})</option>`; });
+            const machineSelect = document.getElementById('machine-select'), manualInputs = document.getElementById('manual-machine-inputs'); let optionsHTML = '<option value="-1">Selecione...</option>'; machineDatabase.forEach((m, i) => { optionsHTML += `<option value="${i}">${m.nome}</option>`; }); optionsHTML += '<option value="manual">Insira Manualmente</option>'; machineSelect.innerHTML = optionsHTML;
+            loadData();
+            const loginOverlay = document.getElementById('login-overlay'), appContainer = document.getElementById('app-container'), btnAcessar = document.getElementById('btn-acessar');
+            btnAcessar.addEventListener('click', function() { nomeUsuario = document.getElementById('nome-usuario').value; nomeEmpresa = document.getElementById('nome-empresa').value; if (!nomeUsuario || !nomeEmpresa) { alert('Preencha nome e empresa.'); return; } loginOverlay.classList.add('hidden'); appContainer.style.visibility = 'visible'; iniciarMonitoramento(); adicionarLog('Acesso ao Sistema', `Usuário ${nomeUsuario} (${nomeEmpresa}) iniciou a sessão.`); saveData(); });
+            document.querySelectorAll('.saveable').forEach(el => { el.addEventListener('change', saveData); });
+            document.getElementById('clear-data-btn').addEventListener('click', clearData);
+            document.getElementById('btn-confirmar-maquina').addEventListener('click', function() { const idx = machineSelect.value; let maquina; if (idx === 'manual') { maquina = { nome: document.getElementById('manual-nome').value, potencia: parseFloat(document.getElementById('manual-potencia').value), torque: parseFloat(document.getElementById('manual-torque').value) }; if(!maquina.nome || !maquina.potencia || !maquina.torque) { alert("Preencha todos os dados da máquina."); return; } } else if (idx >= 0) { maquina = machineDatabase[idx]; } else { alert("Selecione uma máquina."); return; } document.getElementById('potencia').value = maquina.potencia; document.getElementById('rotacao').value = maquina.rotacao; document.getElementById('resultado-maquina').textContent = `Dados de "${maquina.nome}" carregados.`; document.getElementById('resultado-maquina').classList.remove('hidden'); adicionarLog('Seleção de Máquina', `Máquina: ${maquina.nome}`); saveData(); });
+            machineSelect.addEventListener('change', function() { manualInputs.classList.toggle('hidden', this.value !== 'manual'); saveData(); });
+            const tabs = document.querySelectorAll('.tab-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    const targetId = this.getAttribute('data-target');
+                    document.getElementById(targetId).classList.add('active');
+                    if (targetId === 'relatorio') { gerarRelatorioNaTela(); }
+                    if (targetId === 'glossario' && window.MathJax) { window.MathJax.typeset(); }
+                });
+            });
+            sprayButtons.startSimulation.onclick = () => { sprayModal.element.classList.remove('active'); simulationTitle.textContent = currentMode === 'manual' ? 'Operação Manual' : 'Operação com PLM'; switchSprayScreen('simulation'); initializeSpraySimulation(); };
+            sprayButtons.startManual.onclick = () => startSpraySimulation('manual');
+            sprayButtons.startPlm.onclick = () => startSpraySimulation('plm');
+            sprayButtons.finish.onclick = () => { cancelAnimationFrame(animationFrameId); allResultsPulverizacao[currentMode] = simulationData; adicionarLog(`Pulverização (${currentMode})`, `Custo: R$ ${simulationData.cost.toFixed(2)}`); if (allResultsPulverizacao.manual && allResultsPulverizacao.plm) { displaySprayResults(); } else if (currentMode === 'manual') { startSpraySimulation('plm'); } else { startSpraySimulation('manual'); } };
+            function displaySprayResults() { const {manual,plm} = allResultsPulverizacao; sprayResults.manual.coverage.textContent=manual.coverage.toFixed(2);sprayResults.manual.overlap.textContent=manual.overlap.toFixed(2);sprayResults.manual.failure.textContent=manual.failure.toFixed(2);sprayResults.manual.usage.textContent=manual.usage.toFixed(2);sprayResults.manual.cost.textContent=manual.cost.toFixed(2); sprayResults.plm.coverage.textContent=plm.coverage.toFixed(2);sprayResults.plm.overlap.textContent=plm.overlap.toFixed(2);sprayResults.plm.failure.textContent=plm.failure.toFixed(2);sprayResults.plm.usage.textContent=plm.usage.toFixed(2);sprayResults.plm.cost.textContent=plm.cost.toFixed(2); sprayResults.summary.savedUsage.textContent=(manual.usage-plm.usage).toFixed(2);sprayResults.summary.savedCost.textContent=(manual.cost-plm.cost).toFixed(2); switchSprayScreen('results'); }
+            sprayButtons.restart.onclick = () => { allResultsPulverizacao = { manual: null, plm: null }; switchSprayScreen('setup'); };
+            sprayButtons.backToMenu.onclick = () => { cancelAnimationFrame(animationFrameId); switchSprayScreen('setup'); };
+            window.addEventListener('keydown',e=>{ if(currentMode!=='manual'||sprayScreens.simulation.style.display==='none')return;const move=5;switch(e.key){case'ArrowUp':sprayer.dy=-move;break;case'ArrowDown':sprayer.dy=move;break;case'ArrowLeft':sprayer.dx=-move;break;case'ArrowRight':sprayer.dx=move;break;}});
+            window.addEventListener('keyup',e=>{ if(currentMode!=='manual')return;switch(e.key){case'ArrowUp':case'ArrowDown':sprayer.dy=0;break;case'ArrowLeft':case'ArrowRight':sprayer.dx=0;break;}});
+        });
+    </script>
+</body>
+</html>
